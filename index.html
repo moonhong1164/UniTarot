@@ -405,6 +405,8 @@ rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;col
 <div id="toast" class="toast">복사됨!</div>
 
 <script>
+let IMG_BASE = "";
+const STATIC_FILES = ["0. 바보 카드.jpg", "1. 마법사 카드.jpg", "2. 여사제 카드.jpg", "3. 여황제 카드.jpg", "4. 황제 카드.jpg", "5. 교황 카드.jpg", "6. 연인 카드.jpg", "7. 전차 카드.jpg", "8. 힘 카드.jpg", "9. 은둔자 카드.jpg", "10. 운명의 수레바퀴.jpg", "11. 정의 카드.jpg", "12. 행맨 카드.jpg", "13. 죽음 카드.jpg", "14. 절제 카드.jpg", "15. 악마 카드.jpg", "16. 타워 카드.jpg", "17. 별 카드.jpg", "18. 달 카드.jpg", "19. 태양 카드.jpg", "20. 심판 카드.jpg", "21. 세계 카드.jpg", "완드 에이스.jpg", "완드2.jpg", "완드3.jpg", "완드4.jpg", "완드5.jpg", "완드6.jpg", "완드7.jpg", "완드8.jpg", "완드9.jpg", "완드10.jpg", "완드 페이지.jpg", "완드 나이트.jpg", "완드 퀸.jpg", "완드 킹.jpg", "컵 에이스.jpg", "컵2.jpg", "컵3.jpg", "컵4.jpg", "컵5.jpg", "컵6.jpg", "컵7.jpg", "컵8.jpg", "컵9.jpg", "컵10.jpg", "컵 페이지.jpg", "컵 나이트.jpg", "컵 퀸.jpg", "컵 킹.jpg", "소드 에이스.jpg", "소드2.jpg", "소드3.jpg", "소드4.jpg", "소드5.jpg", "소드6.jpg", "소드7.jpg", "소드8.jpg", "소드9.jpg", "소드10.jpg", "소드 페이지.jpg", "소드 나이트.jpg", "소드 퀸.jpg", "소드 킹.jpg", "펜타클 에이스.jpg", "펜타클2.jpg", "펜타클3.jpg", "펜타클4.jpg", "펜타클5.jpg", "펜타클6.jpg", "펜타클7.jpg", "펜타클8.jpg", "펜타클9.jpg", "펜타클10.jpg", "펜타클 페이지.jpg", "펜타클 나이트.jpg", "펜타클 퀸.jpg", "펜타클 킹.jpg"];
 const OWNER="moonhong1164", REPO="UniTarot", BRANCH="main";
 const TREE_API = `https://api.github.com/repos/${OWNER}/${REPO}/git/trees/${BRANCH}?recursive=1`;
 
@@ -572,13 +574,11 @@ function buildSpreadBar(){
 }
 
 async function loadCardsFromGithub(){
-  const res=await fetch(TREE_API,{cache:"no-store"});
-  if(!res.ok) throw new Error("GitHub API HTTP "+res.status);
-  const data=await res.json();
-  const paths=(data.tree||[]).filter(x=>x.type==="blob"&&extOk(x.path)).map(x=>x.path);
-  const cards=paths.map(p=>({title:titleFromPath(p),img:p,folder:folderFromPath(p)}));
-  cards.sort((a,b)=>a.title.localeCompare(b.title,"ko"));
-  return cards;
+  // ✅ GitHub API 의존 제거(403/레이트리밋/로딩중 무한 방지)
+  // 이미지가 루트에 있으면 IMG_BASE="" 그대로.
+  // images/ 같은 폴더에 넣었다면 IMG_BASE="images/" 로만 바꾸면 됩니다.
+  const base = (typeof IMG_BASE==="string" ? IMG_BASE : "");
+  return STATIC_FILES.map(fn=>({ title: titleFromPath(fn), img: base + fn, folder: folderFromPath(base + fn) }));
 }
 
 function renderBoard(){
@@ -984,7 +984,35 @@ function applySharedState(shared){
 
     if(pendingSharedState) applySharedState(pendingSharedState);
 
-  }catch(e){ setStatus("로드 실패"); alert("초기 로딩 실패: "+String(e)); }
-})();
+  }catch(e){
+    console.error(e);
+    setStatus("일부 로딩 실패(도감은 표시합니다) · 콘솔(F12) 확인");
+  }
+  // ✅ 실패해도 UI는 항상 동작
+  $("#drawBtn").addEventListener("click", doDraw);
+  $("#resetBtn").addEventListener("click", ()=>{$("#question").value=""; doReset();});
+  $("#shareBtn").addEventListener("click", shareCurrent);
+  $("#saveBtn").addEventListener("click", saveCurrentReading);
+  $("#question").addEventListener("input", ()=>updateShareHash());
+
+  ["q","folderSearch"].forEach(id=>$("#"+id).addEventListener("input", renderGallery));
+  ["dq","dkw"].forEach(id=>$("#"+id).addEventListener("input", renderDict));
+  $("#sq").addEventListener("input", renderSaved);
+  $("#clearSavedBtn").addEventListener("click", clearSaved);
+
+  $("#tabDraw").addEventListener("click", ()=>show("draw"));
+  $("#tabGallery").addEventListener("click", ()=>show("gallery"));
+  $("#tabDict").addEventListener("click", ()=>show("dict"));
+  $("#tabSaved").addEventListener("click", ()=>show("saved"));
+
+  $("#closeBtn").addEventListener("click", closeModal);
+  $("#modalBack").addEventListener("click",(e)=>{if(e.target.id==="modalBack") closeModal();});
+  window.addEventListener("keydown",(e)=>{if(e.key==="Escape") closeModal();});
+
+  renderBoard(); renderReading();
+  // 기본은 뽑기 화면
+  show("draw");
+  if(pendingSharedState) applySharedState(pendingSharedState);
+}})();
 </script>
 </body></html>
