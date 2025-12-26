@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>UniTarot</title>
+<style>
+:root{
+  --bg:#f7f5f1; --panel:#ffffff; --ink:#222; --muted:#666;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)}
+header{padding:16px;text-align:center;font-weight:800}
+main{max-width:1100px;margin:0 auto;padding:12px 16px 40px}
+#gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px}
+.card img{width:100%;border-radius:10px;cursor:pointer}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center}
+#modal.on{display:flex}
+#modal .box{background:#fff;border-radius:14px;max-width:720px;width:90%;max-height:85vh;overflow:auto;padding:16px}
+.sectionTitle{font-weight:800;margin-top:14px}
+p{margin:6px 0}
+.close{float:right;font-size:22px;cursor:pointer}
+</style>
+</head>
+<body>
+<header>🔮 UniTarot</header>
+<main>
+  <div id="gallery"></div>
+</main>
+
+<div id="modal">
+  <div class="box">
+    <span class="close" onclick="closeModal()">×</span>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const CARDS = [
+  "0. 바보 카드.jpg","1. 마법사 카드.jpg","2. 여사제 카드.jpg","3. 여황제 카드.jpg",
+  "4. 황제 카드.jpg","5. 교황 카드.jpg","6. 연인 카드.jpg"
+];
+
+// 예시 해석 (구조 확인용)
+const INTERPRETATIONS = {
+  "3. 여황제 카드.jpg": `
+건강운
+산부인과 질환, 임신, 호르몬, 피부
+
+장소
+에스테틱, 미용실, 자연, 집
+
+수비학적 의미
+수비학적 의미의 3번 카드
+3은 완성과 풍요를 의미합니다.
+`
+};
+
+function parseCategories(text){
+  const order = ["애정운","관계운","금전운","건강운","장소","수비학적 의미"];
+  const buckets = {};
+  order.forEach(k=>buckets[k]=[]);
+  let current = null;
+
+  text.split(/\n+/).map(t=>t.trim()).filter(Boolean).forEach(line=>{
+    if(order.includes(line)){
+      current = line;
+      return;
+    }
+    if(current){
+      // 수비학 중복 제목 제거
+      if(current==="수비학적 의미" && line.includes("수비학적 의미의")) return;
+      buckets[current].push(line);
+    }
+  });
+  return buckets;
+}
+
+function openCard(file){
+  const raw = INTERPRETATIONS[file];
+  if(!raw){
+    document.getElementById('modalBody').innerHTML = "<p>해석이 준비되지 않은 카드입니다.</p>";
+    openModal(); return;
+  }
+  const data = parseCategories(raw);
+  let html = "";
+  for(const [k,v] of Object.entries(data)){
+    if(v.length){
+      const emoji = k==="건강운"?"🩺":k==="장소"?"🍁":k==="수비학적 의미"?"🔢":"";
+      html += `<div class="sectionTitle">${emoji} ${k}</div>`;
+      v.forEach(t=> html += `<p>${t}</p>`);
+    }
+  }
+  document.getElementById('modalBody').innerHTML = html;
+  openModal();
+}
+
+function openModal(){ document.getElementById('modal').classList.add('on'); }
+function closeModal(){ document.getElementById('modal').classList.remove('on'); }
+
+const g = document.getElementById('gallery');
+CARDS.forEach(c=>{
+  const d = document.createElement('div');
+  d.className = "card";
+  d.innerHTML = `<img src="${c}" />`;
+  d.onclick = ()=>openCard(c);
+  g.appendChild(d);
+});
+</script>
+</body>
+</html>
